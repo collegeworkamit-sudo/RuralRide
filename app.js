@@ -9,7 +9,7 @@ const GpsSimulator = require('./simulator/gpsSimulator');
 const { seedCoupons } = require('./services/rewardsService');
 
 // Load env variables
-dotenv.config();
+dotenv.config({ override: true });
 
 // Import routes
 const authRoutes = require('./routes/auth');
