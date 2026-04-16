@@ -2,8 +2,30 @@ const express = require('express');
 const Route = require('../models/Route');
 const { protect } = require('../middleware/auth');
 const { getConfirmedRoutes, getAllRoutes } = require('../services/ghostRouteEngine');
+const { getETAsFromPosition } = require('../services/etaEngine');
 
 const router = express.Router();
+
+// @route   GET /api/routes/eta?lat=XX&lng=XX&speed=XX
+// @desc    Get ETAs for nearby routes from given position
+// @access  Public
+router.get('/eta', async (req, res) => {
+  try {
+    const { lat, lng, speed } = req.query;
+    if (!lat || !lng) {
+      return res.status(400).json({ success: false, message: 'lat and lng required' });
+    }
+    const etas = await getETAsFromPosition(
+      parseFloat(lat),
+      parseFloat(lng),
+      parseFloat(speed) || 0
+    );
+    res.json({ success: true, etas });
+  } catch (error) {
+    console.error('ETA error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 // @route   GET /api/routes
 // @desc    Get all confirmed ghost routes

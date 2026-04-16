@@ -32,6 +32,22 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    badges: [
+      {
+        id: String,
+        name: String,
+        emoji: String,
+        unlockedAt: { type: Date, default: Date.now },
+      },
+    ],
+    claimedCoupons: [
+      {
+        couponId: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' },
+        code: String,
+        name: String,
+        claimedAt: { type: Date, default: Date.now },
+      },
+    ],
   },
   {
     timestamps: true,

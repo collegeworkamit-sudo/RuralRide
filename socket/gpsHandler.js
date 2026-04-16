@@ -1,8 +1,10 @@
-// ⭐ GPS Handler — Real-time GPS streaming + Ghost Route detection
+// ⭐ GPS Handler — Real-time GPS + Ghost Routes + Rewards + ETA
 const GpsLog = require('../models/GpsLog');
 const { processTrip } = require('../services/ghostRouteEngine');
 const { detectStopsFromPath, mergeStops } = require('../services/stopDetector');
 const { getConfirmedRoutes } = require('../services/ghostRouteEngine');
+const { processTripRewards } = require('../services/rewardsEngine');
+const { getETAsFromPosition } = require('../services/etaEngine');
 
 // In-memory stores
 const activeUsers = new Map();
@@ -51,6 +53,18 @@ function setupGpsHandler(io) {
 
       // Broadcast position to others
       socket.broadcast.emit('gps:user-position', userInfo);
+    });
+
+    // Client requests ETA from their current position
+    socket.on('eta:request', async (data) => {
+      const { lat, lng, speed } = data;
+      if (!lat || !lng) return;
+      try {
+        const etas = await getETAsFromPosition(lat, lng, speed || 0);
+        socket.emit('eta:response', etas);
+      } catch (err) {
+        console.error('ETA socket error:', err.message);
+      }
     });
 
     // Client requests all currently active users
@@ -132,7 +146,19 @@ function setupGpsHandler(io) {
         console.error('Error saving GPS logs:', err.message);
       }
 
-      // 5. Send result back to the user
+      // 5. Process rewards
+      let rewards = { totalAwarded: 0, breakdown: [] };
+      try {
+        rewards = await processTripRewards(
+          socket.userId,
+          routeResult,
+          detectedStops.length
+        );
+      } catch (err) {
+        console.error('Reward processing error:', err.message);
+      }
+
+      // 6. Send result back to the user
       socket.emit('trip:result', {
         success: true,
         route: routeResult.route
@@ -147,9 +173,10 @@ function setupGpsHandler(io) {
         isNewRoute: routeResult.isNew,
         stopsDetected: detectedStops.length,
         pointsLogged: tripPoints.length,
+        rewards,
       });
 
-      // 6. Broadcast updated routes to all clients
+      // 7. Broadcast updated routes to all clients
       const allRoutes = await getConfirmedRoutes();
       io.emit('routes:updated', allRoutes);
 
