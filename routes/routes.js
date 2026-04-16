@@ -1,9 +1,58 @@
 const express = require('express');
+const Route = require('../models/Route');
+const { protect } = require('../middleware/auth');
+const { getConfirmedRoutes, getAllRoutes } = require('../services/ghostRouteEngine');
+
 const router = express.Router();
 
-// Placeholder — will be implemented in Phase 4 (Ghost Routes)
-router.get('/', (req, res) => {
-  res.json({ success: true, message: 'Routes API — Coming in Phase 4' });
+// @route   GET /api/routes
+// @desc    Get all confirmed ghost routes
+// @access  Public
+router.get('/', async (req, res) => {
+  try {
+    const routes = await getConfirmedRoutes();
+    res.json({
+      success: true,
+      count: routes.length,
+      routes,
+    });
+  } catch (error) {
+    console.error('Error fetching routes:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/routes/all
+// @desc    Get all routes including candidates
+// @access  Public
+router.get('/all', async (req, res) => {
+  try {
+    const routes = await getAllRoutes();
+    res.json({
+      success: true,
+      count: routes.length,
+      routes,
+    });
+  } catch (error) {
+    console.error('Error fetching routes:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// @route   GET /api/routes/:id
+// @desc    Get a single route by ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+  try {
+    const route = await Route.findById(req.params.id);
+    if (!route) {
+      return res.status(404).json({ success: false, message: 'Route not found' });
+    }
+    res.json({ success: true, route });
+  } catch (error) {
+    console.error('Error fetching route:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
 });
 
 module.exports = router;
