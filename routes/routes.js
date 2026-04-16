@@ -77,4 +77,18 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// @route   DELETE /api/routes/clear
+// @desc    Clear all ghost routes (for re-simulation)
+// @access  Public
+router.delete('/clear', async (req, res) => {
+  try {
+    const result = await Route.deleteMany({});
+    console.log(`🗑️  Cleared ${result.deletedCount} routes`);
+    res.json({ success: true, deleted: result.deletedCount });
+  } catch (error) {
+    console.error('Error clearing routes:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 module.exports = router;
